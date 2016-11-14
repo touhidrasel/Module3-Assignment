@@ -4,13 +4,13 @@
     var app = angular.module('NarrowItDownApp', []);
     app.controller('NarrowItDownController',NarrowItDownController);
     app.service('MenuSearchService',MenuSearchService);
-    app.constant('BasePath', "https://davids-restaurant.herokuapp.com/menu_items.json");
+    app.constant('baseurl', "https://davids-restaurant.herokuapp.com/menu_items.json");
     app.directive('foundItems',FoundItems);
 
     function FoundItems(){
         var ddo = {
-             templateUrl: 'listtable.html',
-             restrict : 'E',
+             templateUrl: 'listitems.html',
+             restrict : 'AE',
              scope:{
                  list:'<list',
                  onRemove : '&'
@@ -28,37 +28,34 @@
             return item;
         };
 
-        list.toFound = function(){
-            var itemTofind = list.getItem();
+        list.searchItem = function(){
+            var searchTerm = list.getItem();
 
-            if(itemTofind == null || itemTofind == undefined )
+            if(searchTerm == null || searchTerm == undefined )
             {
                     $scope.message =  "Nothing found";
             }
             else
             {
-                     if(itemTofind.length > 0)
+                     if(searchTerm.length > 0)
                      {
                            var promise = MenuSearchService.getItems( );
                             promise
                             .then(function (response){
-                                //From object to array
-                                var foundItems =Object.values(response.data);
-                                //
-                                list.found = MenuSearchService.getMatchedMenuItems(foundItems,itemTofind);
+                                var foundItems = Object.values(response.data);
+                                list.found = MenuSearchService.getMatchedMenuItems(foundItems,searchTerm);
                                 if (list.found == null)
                                 {
                                     $scope.message =  "Nothing found";
-                                    itemTofind = undefined ;
+                                    searchTerm = undefined ;
                                 }
                                 else
                                 {
                                     $scope.message =  null;
-                                    itemTofind = undefined ;
+                                    searchTerm = undefined ;
                                 }
                             })
                             .catch (function (error){
-                                console.log(error);
                                 $scope.message =  "Nothing found";
                             })
                      }
@@ -69,17 +66,14 @@
                      }
             }
         };
-
         list.removeItem = function(itemIndex){
            MenuSearchService.removeItem(itemIndex);
         };
     }
 
-    MenuSearchService.$inject = ['$http','BasePath'];
-    function MenuSearchService($http,BasePath){
-
+    MenuSearchService.$inject = ['$http','baseurl'];
+    function MenuSearchService($http,baseurl){
         var service = this;
-
         var found =[];
 
         service.getMatchedMenuItems= function(arrayItems,searchTerm){
@@ -89,15 +83,17 @@
              }
              for (var j = 0; j < arrayItems[0].length;++j )
                 {
-                    var plat = arrayItems[0][j];
-                    if(plat["description"].toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1)
+                    var arrObj = arrayItems[0][j];
+                    //console.log(arrObj);
+                    if(arrObj["description"].toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1)
                     {
-                        var plt = {
-                                name: plat["name"],
-                                short_name :plat["short_name"],
-                                description: plat["description"]
+                        var newObj = {
+                                name: arrObj["name"],
+                                short_name :arrObj["short_name"],
+                                description: arrObj["description"]
                                 };
-                        found.push(plt);
+                              //  console.log(newObj);
+                        found.push(newObj);
 
                     }
                 }
@@ -113,13 +109,12 @@
         };
 
         service.getItems=function(){
-           var response = $http({
+           var responseJson = $http({
                 method: "GET",
-                url: (BasePath)
+                url: baseurl
             });
-            return response;
+            return responseJson;
         };
-
         service.removeItem = function (itemIndex) {
             found.splice(itemIndex, 1);
         };
